@@ -1,6 +1,6 @@
 angular.module('ui.bootstrap.contextMenu', [])
 
-.directive('contextMenu', ["$parse", "$q", function ($parse, $q) {
+.directive('contextMenu', ["$parse", "$q", "$window", function ($parse, $q, $window) {
 
     var contextMenus = [];
 
@@ -34,8 +34,10 @@ angular.module('ui.bootstrap.contextMenu', [])
             position: 'absolute',
             left: event.pageX + 'px',
             top: event.pageY + 'px',
-            "z-index": 10000
+            "z-index": 10000,
+            margin: 0
         });
+
         var $promises = [];
         angular.forEach(options, function (item, i) {
             var $li = $('<li>');
@@ -50,7 +52,7 @@ angular.module('ui.bootstrap.contextMenu', [])
                 $a.css("padding-right", "8px");
                 $a.attr({ tabindex: '-1', href: '#' });
                 var text = typeof item[0] == 'string' ? item[0] : item[0].call($scope, $scope, event, model);
-                $promise = $q.when(text)
+                $promise = $q.when(text);
                 $promises.push($promise);
                 $promise.then(function (text) {
                     if (nestedMenu) {
@@ -63,14 +65,12 @@ angular.module('ui.bootstrap.contextMenu', [])
 
                 var enabled = angular.isFunction(item[2]) ? item[2].call($scope, $scope, event, model, text) : true;
                 if (enabled) {
+
                     var openNestedMenu = function ($event) {
                         removeContextMenus(level + 1);
-                        var ev = {
-                            pageX: event.pageX + $ul[0].offsetWidth - 1,
-                            pageY: $ul[0].offsetTop + $li[0].offsetTop - 3
-                        };
-                        renderContextMenu($scope, ev, nestedMenu, model, level + 1);
-                    }
+                        renderContextMenu($scope, $event, nestedMenu, model, level + 1);
+                    };
+
                     $li.on('click', function ($event) {
                         $event.preventDefault();
                         $scope.$apply(function () {
@@ -116,33 +116,92 @@ angular.module('ui.bootstrap.contextMenu', [])
         });
         $(document).find('body').append($contextMenu);
 
+
+
         //calculate if drop down menu would go out of screen at left or bottom
         // calculation need to be done after element has been added (and all texts are set; thus thepromises)
         // to the DOM the get the actual height
         $q.all($promises).then(function(){
-            if(level === 0){
-                var topCoordinate = event.pageY;
-                var menuHeight = angular.element($ul[0]).prop('offsetHeight');
-                var winHeight = event.view.innerHeight;
-                if (topCoordinate > menuHeight && winHeight - topCoordinate < menuHeight) {
-                    topCoordinate = event.pageY - menuHeight;
-                }
 
-                var leftCoordinate = event.pageX;
-                var menuWidth = angular.element($ul[0]).prop('offsetWidth');
-                var winWidth = event.view.innerWidth;
-                if(leftCoordinate > menuWidth && winWidth - leftCoordinate < menuWidth){
-                    leftCoordinate = event.pageX - menuWidth;
-                }
+            var menu = $ul[0];
 
-                $ul.css({
-                    display: 'block',
-                    position: 'absolute',
-                    left: leftCoordinate + 'px',
-                    top: topCoordinate + 'px'
-                });
-            } 
+            var offsetX = $window.pageXOffset;
+            var offsetY = $window.pageYOffset;
+
+            var menuWidth = menu.offsetWidth;
+            var menuHeight = menu.offsetHeight;
+
+            var windowWidth = $window.innerWidth;
+            var windowHeight = $window.innerHeight;
+
+            // calculate possible positions
+            var positionRight = event.clientX;
+            var positionLeft = event.clientX - menuWidth;
+            var positionDown = event.clientY;
+            var positionUp = event.clientY - menuHeight;
+            if( level > 0 ) {
+                var parentMenu = contextMenus[level-1][0];
+                var parentMenuItem = event.currentTarget;
+
+                console.log(parentMenuItem.tagName);
+                console.log(parentMenuItem);
+
+                positionRight = parentMenu.offsetLeft - offsetX + parentMenu.offsetWidth -1;
+                positionLeft = positionRight - parentMenu.offsetWidth - menuWidth +2;
+
+                positionDown = parentMenu.offsetTop - offsetY + parentMenuItem.offsetTop;
+                positionUp = positionDown + parentMenuItem.offsetHeight - menuHeight +7; // the 7 comes from the border + 2* margins of menu, I guess
+            }
+
+
+            // FIX HORIZONTAL POSITION
+
+            var menuX = positionRight;
+
+            // fit menu below
+            if(positionRight + menuWidth <= windowWidth) {
+                menuX = positionRight;
+
+            // fit menu above
+            } else if(positionLeft >= 0) {
+                menuX = positionLeft;
+
+            // fit menu on right of window
+            } else if(menuWidth < windowWidth){
+                menuX = windowWidth;
+            }
+
+
+            // FIX VERTICAL POSITION
+
+            // default to below
+            var menuY = positionDown;
+
+            // fit menu below
+            if(positionDown + menuHeight <= windowHeight) {
+                menuY = positionDown;
+
+            // fit menu above
+            } else if(positionUp >= 0) {
+                menuY = positionUp;
+
+            // fit menu on bottom of window
+            } else if(menuHeight < windowHeight){
+                menuY = windowHeight;
+            }
+
+
+            // update with new coords
+            $ul.css({
+                display: 'block',
+                position: 'absolute',
+                left: offsetX + menuX + 'px', // back to pagecoords!
+                top: offsetY + menuY + 'px'   // back to pagecoords!
+            });
+
         });
+
+
 
         $contextMenu.on("mousedown", function (e) {
             if ($(e.target).hasClass('dropdown')) {
