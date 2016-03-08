@@ -143,9 +143,6 @@ angular.module('ui.bootstrap.contextMenu', [])
                 var parentMenu = contextMenus[level-1][0];
                 var parentMenuItem = event.currentTarget;
 
-                console.log(parentMenuItem.tagName);
-                console.log(parentMenuItem);
-
                 positionRight = parentMenu.offsetLeft - offsetX + parentMenu.offsetWidth -1;
                 positionLeft = positionRight - parentMenu.offsetWidth - menuWidth +2;
 
@@ -168,7 +165,7 @@ angular.module('ui.bootstrap.contextMenu', [])
 
             // fit menu on right of window
             } else if(menuWidth < windowWidth){
-                menuX = windowWidth;
+                menuX = windowWidth - menuWidth;
             }
 
 
@@ -187,7 +184,7 @@ angular.module('ui.bootstrap.contextMenu', [])
 
             // fit menu on bottom of window
             } else if(menuHeight < windowHeight){
-                menuY = windowHeight;
+                menuY = windowHeight - menuHeight;
             }
 
 
@@ -220,7 +217,9 @@ angular.module('ui.bootstrap.contextMenu', [])
         contextMenus.push($ul);
     };
     return function ($scope, element, attrs) {
-        element.on('contextmenu', function (event) {
+        triggerOn = attrs.hasOwnProperty('contextMenuLeft') ? "click":"contextmenu";
+
+        element.on(triggerOn, function (event) {
             event.stopPropagation();
             $scope.$apply(function () {
                 event.preventDefault();
