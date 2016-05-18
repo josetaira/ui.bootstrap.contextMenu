@@ -38,7 +38,7 @@ angular.module('ui.bootstrap.contextMenu', [])
             text = item[0];
         }
         else if (typeof item[0] === "function") {
-            item[0].call($scope, $scope, event, model);
+            text = item[0].call($scope, $scope, event, model);
         } else if (typeof item.text !== "undefined") {
             text = item.text;
         }
@@ -46,11 +46,11 @@ angular.module('ui.bootstrap.contextMenu', [])
         var $promise = $q.when(text);
         $promises.push($promise);
         $promise.then(function (text) {
-            $a.text(text);
             if (nestedMenu) {
                 $a.css("cursor", "default");
                 $a.append($('<strong style="font-family:monospace;font-weight:bold;float:right;">&gt;</strong>'));
             }
+            $a.append(text);
         });
 
         return $a;
@@ -71,7 +71,7 @@ angular.module('ui.bootstrap.contextMenu', [])
         // if first item is a string, then text should be the string.
 
         var text = defaultItemText;
-        if (typeof item[0] === 'string' || typeof item.text !== "undefined") {
+        if (typeof item[0] === 'function' || typeof item[0] === 'string' || typeof item.text !== "undefined") {
             text = processTextItem($scope, item, text, event, model, $promises, nestedMenu, $);
         }
         else if (typeof item.html !== "undefined") {
@@ -129,8 +129,15 @@ angular.module('ui.bootstrap.contextMenu', [])
             var leftCoordinate = event.pageX;
             var menuWidth = angular.element($ul[0]).prop('offsetWidth');
             var winWidth = event.view.innerWidth;
-            if (leftCoordinate > menuWidth && winWidth - leftCoordinate < menuWidth) {
-                leftCoordinate = event.pageX - menuWidth;
+            var rightPadding = 5;
+            if (leftCoordinate > menuWidth && winWidth - leftCoordinate - rightPadding < menuWidth) {
+                leftCoordinate = winWidth - menuWidth - rightPadding;
+            } else if(winWidth - leftCoordinate < menuWidth) {
+                var reduceThreshold = 5;
+                if(leftCoordinate < reduceThreshold + rightPadding) {
+                    reduceThreshold = leftCoordinate + rightPadding;
+                }
+                leftCoordinate = winWidth - menuWidth - reduceThreshold - rightPadding;
             }
 
             $ul.css({
@@ -213,8 +220,8 @@ angular.module('ui.bootstrap.contextMenu', [])
             $contextMenu = $currentContextMenu;
         } else {
             $currentContextMenu = $contextMenu;
+            $contextMenu.addClass('angular-bootstrap-contextmenu dropdown clearfix');
         }
-        $contextMenu.addClass('dropdown clearfix');
         var $ul = $('<ul>');
         $ul.addClass('dropdown-menu');
         $ul.attr({ 'role': 'menu' });
