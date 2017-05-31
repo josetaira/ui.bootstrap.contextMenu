@@ -81,7 +81,15 @@ angular.module('ui.bootstrap.contextMenu', [])
 
         $li.append(text);
 
-
+		// async is a function that should return promise that will only be called once the nestedMenu is called.
+		// think if as a lazy loaded nestedMenu
+		// Include a loading indicator first.
+		if (angular.isFunction(item.async)) {
+			nestedMenu = [['Loading...', function() {}, function() {
+				return false; // loading should be disabled.
+			}]];
+			nestedMenu.async = item.async;
+		}
 
 
         // if item is object, and has enabled prop invoke the prop
@@ -172,6 +180,11 @@ angular.module('ui.bootstrap.contextMenu', [])
                  */
                 $q.when(nestedMenu).then(function(promisedNestedMenu) {
                     renderContextMenu($scope, ev, promisedNestedMenu, model, level + 1);
+					if (angular.isFunction(nestedMenu.async)) {
+						$q.when(nestedMenu.async()).then(function(promisedNestedMenu) {
+							renderContextMenu($scope, ev, promisedNestedMenu, model, level + 1);
+						});
+					}
                 });
             };
 
