@@ -21,6 +21,23 @@ Add a reference to `contextMenu.js`. In your app config add `ui.bootstrap.contex
 </div>
 <div ng-bind="selected"></div>
 ```
+* OR
+
+```html
+<div>
+    <span>you can specify the event on how the menu opens:</span>
+    <div ng-repeat="item in items" context-menu="menuOptions" context-menu-on="click">Left Click: {{item.name}}</div>
+</div>
+<div ng-bind="selected"></div>
+```
+### Callback Parameters
+
+There are currently 5 parameters that are being passed to the callback:
+- $itemScope - The scope of the directive
+- event - The event associated with this directive (normally `contextmenu`)
+- modelValue - See "Model Attribute" below
+- text - The HTML value of the text. Normally this contains the &lt;a&gt; tag surrounding the text by default.
+- $li - The list item selected
 
 ### Controller
 
@@ -29,14 +46,14 @@ $scope.selected = 'None';
 $scope.items = [
     { name: 'John', otherProperty: 'Foo' },
     { name: 'Joe', otherProperty: 'Bar' }
-};
+];
 
 $scope.menuOptions = [
-    ['Select', function ($itemScope) {
+    ['Select', function ($itemScope, $event, modelValue, text, $li) {
         $scope.selected = $itemScope.item.name;
     }],
     null, // Dividier
-    ['Remove', function ($itemScope) {
+    ['Remove', function ($itemScope, $event, modelValue, text, $li) {
         $scope.items.splice($itemScope.$index, 1);
     }]
 ];
@@ -46,15 +63,15 @@ $scope.menuOptions = [
 
 Every menu option has an array with 2-3 indexs. Most items will use the `[String, Function]` format. If you need a dynamic item in your context menu you can also use the `[Function, Function]` format.
 
-The third optional index is a function used to enable/disable the item. If the functtion returns true, the item is enabled (default). If no function is provided, the item will be enabled by default. 
+The third optional index is a function used to enable/disable the item. If the function returns true, the item is enabled (default). If no function is provided, the item will be enabled by default.
 
 ```js
 $scope.menuOptions = [
-    [function ($itemScope, $event) {
+    [function ($itemScope, $event, modelValue, text, $li) {
         return $itemScope.item.name;
     }, function ($itemScope, $event) {
         // Action
-    }, function($itemScope, $event) {
+    }, function($itemScope, $event, modelValue, text, $li) {
         // Enable or Disable
         return true; // enabled = true, disabled = false
     }]
@@ -80,6 +97,14 @@ $scope.menuOptions = function (item) {
 };
 ```
 
+## Custom Class
+
+Add your custom class to top element of the context menu
+
+```html
+<div context-menu="menuOptions" context-menu-class="custom_class"></div>
+```
+
 ## Model Attribute (optional)
 
 In instances where a reference is not passed through the `$itemScope` (i.e. not using `ngRepeat`), there is a `model` attribute that can pass a value.
@@ -92,11 +117,11 @@ The `model` is evaluated as an expression using `$scope.$eval` and passed as the
 
 ```js
 $scope.menuOptions = [
-    [function ($itemScope, $event, model) {
+    [function ($itemScope, $event, modelValue) {
         return $itemScope.item.name;
-    }, function ($itemScope, $event, model) {
+    }, function ($itemScope, $event, modelValue) {
         // Action
-    }, function($itemScope, $event, model) {
+    }, function($itemScope, $event, modelValue) {
         // Enable or Disable
         return true; // enabled = true, disabled = false
     }]
@@ -118,22 +143,49 @@ body > .angular-bootstrap-contextmenu.dropdown {
 
 ## Custom HTML
 
-```
+```js
+// With a custom static string:
 var customHtml = '<div style="cursor: pointer; background-color: pink">' +
                  '<i class="glyphicon glyphicon-ok-sign"></i> Testing Custom </div>';
-                 
+
 var customItem = {
-    html: customHtml, 
-    enabled: function() {return true}, 
+    html: customHtml,
+    enabled: function() {return true},
     click: function ($itemScope, $event, value) {
         alert("custom html");
     }};
-    
-$scope.customHTMLOptions = [customItem,
+
+// With a custom function returning a string:
+var customItem2 = {
+    html: function($itemScope) {
+        return $itemScope.lastname + ' ' + $itemScope.firstname;
+    },
+    enabled: function() {return true},
+    click: function ($itemScope, $event, value) {
+        alert("custom html");
+    }
+};
+
+$scope.customHTMLOptions = [
+    customItem,
+    customItem2,
     ['Example 1', function ($itemScope, $event, value) {
         alert("Example 1");
     }]
+];
 ```
+
+## Allow Event Propagation
+
+Sometimes you'll want to catch the same event that's being used by this library and use it in another. To do this, you can use the property `allow-event-propagation`
+
+```html
+<button class="btn btn-default"
+        context-menu="otherMenuOptions"
+        allow-event-propagation="true"
+        model="'Blue'">Right Click allow event propagation</button>
+```
+Note that if you set this to true, and don't catch it with something else the browser's context menu will be shown on top of this library's context menu.
 
 ## Nested Menus (v0.9.5+)
 
