@@ -153,6 +153,7 @@ angular.module('ui.bootstrap.contextMenu', [])
                 left: leftCoordinate + 'px',
                 top: topCoordinate + 'px'
             });
+            $(document.body).removeClass("angular-bootstrap-contextmenu-body");
         });
 
     };
@@ -259,7 +260,9 @@ angular.module('ui.bootstrap.contextMenu', [])
             document.body.offsetHeight, document.documentElement.offsetHeight,
             document.body.clientHeight, document.documentElement.clientHeight
         );
-        $(document).find('body').append($ul);
+        var body = $(document).find('body');
+        body.addClass("angular-bootstrap-contextmenu-body");
+        body.append($ul);
 
         handlePromises($ul, level, event, $promises);
 
@@ -288,6 +291,9 @@ angular.module('ui.bootstrap.contextMenu', [])
 
         function removeAllContextMenus(e) {
             $(document.body).off('mousedown', removeOnOutsideClickEvent);
+            angular.forEach($("iframe"), function (item) {
+              $(item.contentWindow).off('mousedown', removeOnOutsideClickEvent);;
+            });
             $(document).off('scroll', removeOnScrollEvent);
             $(event.originalTarget).removeClass('context');
             removeContextMenus();
@@ -295,6 +301,9 @@ angular.module('ui.bootstrap.contextMenu', [])
 
         if(level === 0) {
           $(document.body).on('mousedown', removeOnOutsideClickEvent);
+          angular.forEach($("iframe"), function (item) {
+            $(item.contentWindow).on('mousedown', removeOnOutsideClickEvent);;
+          });
           /// remove the menu when the scroll moves
           $(document).on('scroll', removeOnScrollEvent);
         }
