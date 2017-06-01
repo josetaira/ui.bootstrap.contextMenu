@@ -58,8 +58,8 @@ angular.module('ui.bootstrap.contextMenu', [])
     var processItem = function ($scope, event, modelValue, item, $ul, $li, $promises, $q, $, level) {
         /// <summary>Process individual item</summary>
         "use strict";
-        // nestedMenu is either an Array or a Promise that will return that array.
-        var nestedMenu = angular.isArray(item[1]) ||
+        // nestedMenu is either an object with subMenu, an Array or a Promise that will return that array.
+        var nestedMenu = item.subMenu ? item.subMenu : angular.isArray(item[1]) ||
             (item[1] && angular.isFunction(item[1].then)) ? item[1] : angular.isArray(item[2]) ||
             (item[2] && angular.isFunction(item[2].then)) ? item[2] : angular.isArray(item[3]) ||
             (item[3] && angular.isFunction(item[3].then)) ? item[3] : null;
@@ -153,6 +153,7 @@ angular.module('ui.bootstrap.contextMenu', [])
                 left: leftCoordinate + 'px',
                 top: topCoordinate + 'px'
             });
+            $(document.body).removeClass("angular-bootstrap-contextmenu-body");
         });
 
     };
@@ -181,6 +182,12 @@ angular.module('ui.bootstrap.contextMenu', [])
                  */
                 $q.when(nestedMenu).then(function(promisedNestedMenu) {
                     renderContextMenu($scope, ev, promisedNestedMenu, modelValue, level + 1);
+                    if (item.async) {
+                        $q.when(item.async()).then(function(promisedNestedMenu) {
+                        removeContextMenus(level + 1);
+                        renderContextMenu($scope, ev, promisedNestedMenu, modelValue, level + 1);
+                      });
+                    }
                 });
             };
 
@@ -259,7 +266,9 @@ angular.module('ui.bootstrap.contextMenu', [])
             document.body.offsetHeight, document.documentElement.offsetHeight,
             document.body.clientHeight, document.documentElement.clientHeight
         );
-        $(document).find('body').append($ul);
+        var body = $(document).find('body');
+        body.addClass("angular-bootstrap-contextmenu-body");
+        body.append($ul);
 
         handlePromises($ul, level, event, $promises);
 
@@ -288,6 +297,9 @@ angular.module('ui.bootstrap.contextMenu', [])
 
         function removeAllContextMenus(e) {
             $(document.body).off('mousedown', removeOnOutsideClickEvent);
+            angular.forEach($("iframe"), function (item) {
+              $(item.contentWindow).off('mousedown', removeOnOutsideClickEvent);;
+            });
             $(document).off('scroll', removeOnScrollEvent);
             $(event.originalTarget).removeClass('context');
             removeContextMenus();
@@ -295,6 +307,9 @@ angular.module('ui.bootstrap.contextMenu', [])
 
         if(level === 0) {
           $(document.body).on('mousedown', removeOnOutsideClickEvent);
+          angular.forEach($("iframe"), function (item) {
+            $(item.contentWindow).on('mousedown', removeOnOutsideClickEvent);;
+          });
           /// remove the menu when the scroll moves
           $(document).on('scroll', removeOnScrollEvent);
         }
