@@ -58,8 +58,8 @@ angular.module('ui.bootstrap.contextMenu', [])
     var processItem = function ($scope, event, modelValue, item, $ul, $li, $promises, $q, $, level) {
         /// <summary>Process individual item</summary>
         "use strict";
-        // nestedMenu is either an Array or a Promise that will return that array.
-        var nestedMenu = angular.isArray(item[1]) ||
+        // nestedMenu is either an object with subMenu, an Array or a Promise that will return that array.
+        var nestedMenu = item.subMenu ? item.subMenu : angular.isArray(item[1]) ||
             (item[1] && angular.isFunction(item[1].then)) ? item[1] : angular.isArray(item[2]) ||
             (item[2] && angular.isFunction(item[2].then)) ? item[2] : angular.isArray(item[3]) ||
             (item[3] && angular.isFunction(item[3].then)) ? item[3] : null;
@@ -182,6 +182,12 @@ angular.module('ui.bootstrap.contextMenu', [])
                  */
                 $q.when(nestedMenu).then(function(promisedNestedMenu) {
                     renderContextMenu($scope, ev, promisedNestedMenu, modelValue, level + 1);
+                    if (item.async) {
+                        $q.when(item.async()).then(function(promisedNestedMenu) {
+                        removeContextMenus(level + 1);
+                        renderContextMenu($scope, ev, promisedNestedMenu, modelValue, level + 1);
+                      });
+                    }
                 });
             };
 
