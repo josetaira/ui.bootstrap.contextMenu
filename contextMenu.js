@@ -211,7 +211,7 @@ angular.module('ui.bootstrap.contextMenu', [])
                 }
             });
 
-            $li.on('mouseover', function ($event) {
+            $li.on('mouseenter', function ($event) {
                 $scope.$apply(function () {
                     if (nestedMenu) {
                         openNestedMenu($event);
